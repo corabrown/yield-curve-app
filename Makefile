@@ -10,6 +10,9 @@ logs:
 api-logs:
 	docker compose logs -f api
 
+frontend-logs:
+	docker compose logs -f frontend
+
 pipeline-logs:
 	docker compose logs -f pipeline
 

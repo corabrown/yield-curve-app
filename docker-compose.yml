@@ -32,6 +32,48 @@ services:
       postgres:
         condition: service_healthy
 
+  # ── Backfill (runs once on startup, then exits) ────────────────────────────
+  backfill:
+    build:
+      context: ./services/pipeline
+      target: dev
+    command: python -m src.backfill
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-yieldcurve}:${DB_PASSWORD:-localpassword}@postgres:5432/${DB_NAME:-yieldcurve}
+    volumes:
+      - ./services/pipeline/src:/app/src
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  # ── FastAPI ─────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./services/api
+      target: dev
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-yieldcurve}:${DB_PASSWORD:-localpassword}@postgres:5432/${DB_NAME:-yieldcurve}
+    volumes:
+      - ./services/api/app:/app/app
+    depends_on:
+      backfill:
+        condition: service_completed_successfully
+
+  # ── Streamlit frontend ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./services/frontend
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://api:8000
+    volumes:
+      - ./services/frontend/app:/app/app
+    depends_on:
+      - api
+
   # ── Pipeline (run on demand; scheduled via EventBridge on AWS) ─────────────
   pipeline:
     build:
@@ -40,12 +82,12 @@ services:
     environment:
       DATABASE_URL: postgresql://${DB_USER:-yieldcurve}:${DB_PASSWORD:-localpassword}@postgres:5432/${DB_NAME:-yieldcurve}
     volumes:
-      - ./services/pipeline/src:/app/src  # live edits in dev
+      - ./services/pipeline/src:/app/src
     depends_on:
       migrations:
         condition: service_completed_successfully
     profiles:
-      - pipeline  # don't start automatically; run via: make run-pipeline
+      - pipeline
 
 volumes:
   postgres_data:
