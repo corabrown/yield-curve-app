@@ -1,0 +1,30 @@
+# Environment
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+crash.log
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
