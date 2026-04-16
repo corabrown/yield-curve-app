@@ -85,13 +85,13 @@ with tab_history:
 # ── Tab 3: User ───────────────────────────────────────────────────────────────
 with tab_user:
 
-    if "orders_user_id" not in st.session_state:
-        st.session_state.orders_user_id = None
+    if "selected_user_id" not in st.session_state:
+        st.session_state.selected_user_id = None
 
-    def show_orders(user_id: int):
+    def show_orders(user: dict):
         try:
-            orders = api.get_user_orders(user_id)
-            st.subheader(f"Orders for User {user_id}")
+            orders = api.get_user_orders(user["id"])
+            st.subheader(f"Orders for {user['first_name']} (ID: {user['id']})")
             if not orders:
                 st.info("No orders yet.")
             else:
