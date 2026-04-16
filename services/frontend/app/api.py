@@ -33,6 +33,12 @@ def get_dates():
     return r.json()["dates"]
 
 
+def get_users():
+    r = requests.get(f"{API_BASE}/users", timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
 def create_user(first_name: str):
     r = requests.post(f"{API_BASE}/users", json={"first_name": first_name}, timeout=10)
     r.raise_for_status()

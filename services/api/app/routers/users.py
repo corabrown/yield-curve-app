@@ -20,6 +20,11 @@ def _get_valid_tenors(db: Session) -> list[str]:
     return db.execute(select(Tenor.code).order_by(Tenor.sort_order)).scalars().all()
 
 
+@router.get("", response_model=list[UserResponse])
+def get_users(db: Session = Depends(get_db)):
+    return db.execute(select(User).order_by(User.first_name)).scalars().all()
+
+
 @router.post("", response_model=UserResponse, status_code=201)
 def create_user(body: UserCreate, db: Session = Depends(get_db)):
     existing = db.execute(select(User).where(User.first_name == body.first_name)).scalar_one_or_none()

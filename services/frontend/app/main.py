@@ -101,6 +101,30 @@ with tab_user:
         except Exception as e:
             st.error(f"Could not fetch orders: {e}")
 
+    # ── Select existing user ──────────────────────────────────────────────────
+    st.subheader("Select User")
+    try:
+        users = api.get_users()
+    except Exception as e:
+        st.error(f"Could not load users: {e}")
+        users = []
+
+    if users:
+        ids = [u["id"] for u in users]
+        default_idx = ids.index(st.session_state.selected_user_id) if st.session_state.selected_user_id in ids else 0
+        selected_user = st.selectbox(
+            "User",
+            users,
+            index=default_idx,
+            format_func=lambda u: f"{u['first_name']} (ID: {u['id']})",
+        )
+        st.session_state.selected_user_id = selected_user["id"]
+    else:
+        st.info("No users yet. Create one below.")
+        selected_user = None
+
+    st.divider()
+
     # ── Create user ───────────────────────────────────────────────────────────
     st.subheader("Create User")
     with st.form("create_user_form"):
@@ -113,6 +137,8 @@ with tab_user:
             try:
                 user = api.create_user(first_name.strip())
                 st.success(f"Created user '{user['first_name']}' (ID: {user['id']})")
+                st.session_state.selected_user_id = user["id"]
+                st.rerun()
             except Exception as e:
                 st.error(f"Could not create user: {e}")
 
@@ -120,20 +146,23 @@ with tab_user:
 
     # ── Create order ──────────────────────────────────────────────────────────
     st.subheader("Create Order")
-    with st.form("create_order_form"):
-        user_id_input = st.number_input("User ID", min_value=1, step=1)
-        tenor_options = ["1M", "3M", "6M", "1Y", "2Y", "3Y", "5Y", "7Y", "10Y", "20Y", "30Y"]
-        term = st.selectbox("Term", tenor_options)
-        amount = st.number_input("Amount ($)", min_value=0.01, step=100.0, format="%.2f")
-        order_submitted = st.form_submit_button("Place Order")
-    if order_submitted:
-        try:
-            order = api.create_order(int(user_id_input), term, amount)
-            st.success(f"Order placed — ID: {order['id']}, Term: {order['term']}, Amount: ${order['amount']}")
-            st.session_state.orders_user_id = int(user_id_input)
-        except Exception as e:
-            st.error(f"Could not create order: {e}")
+    if not selected_user:
+        st.info("Select or create a user above to place an order.")
+    else:
+        st.write(f"Placing order for **{selected_user['first_name']}** (ID: {selected_user['id']})")
+        with st.form("create_order_form"):
+            tenor_options = ["1M", "3M", "6M", "1Y", "2Y", "3Y", "5Y", "7Y", "10Y", "20Y", "30Y"]
+            term = st.selectbox("Term", tenor_options)
+            amount = st.number_input("Amount ($)", min_value=0.01, step=100.0, format="%.2f")
+            order_submitted = st.form_submit_button("Place Order")
+        if order_submitted:
+            try:
+                order = api.create_order(selected_user["id"], term, amount)
+                st.success(f"Order placed — ID: {order['id']}, Term: {order['term']}, Amount: ${order['amount']}")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Could not create order: {e}")
 
-    if st.session_state.orders_user_id:
+    if selected_user:
         st.divider()
-        show_orders(st.session_state.orders_user_id)
+        show_orders(selected_user)
