@@ -19,15 +19,14 @@ services:
 
   # ── Migrations (runs once, then exits) ─────────────────────────────────────
   migrations:
-    image: flyway/flyway:10
+    build:
+      context: ./migrations
     command: >
       -url=jdbc:postgresql://postgres:5432/${DB_NAME:-yieldcurve}
       -user=${DB_USER:-yieldcurve}
       -password=${DB_PASSWORD:-localpassword}
       -connectRetries=10
       migrate
-    volumes:
-      - ./migrations:/flyway/sql:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,13 +47,11 @@ services:
   api:
     build:
       context: ./services/api
-      target: dev
+      target: prod
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://${DB_USER:-yieldcurve}:${DB_PASSWORD:-localpassword}@postgres:5432/${DB_NAME:-yieldcurve}
-    volumes:
-      - ./services/api/app:/app/app
     depends_on:
       backfill:
         condition: service_completed_successfully
@@ -67,8 +64,6 @@ services:
       - "8501:8501"
     environment:
       API_URL: http://api:8000
-    volumes:
-      - ./services/frontend/app:/app/app
     depends_on:
       - api
 
@@ -76,11 +71,9 @@ services:
   pipeline:
     build:
       context: ./services/pipeline
-      target: dev
+      target: prod
     environment:
       DATABASE_URL: postgresql://${DB_USER:-yieldcurve}:${DB_PASSWORD:-localpassword}@postgres:5432/${DB_NAME:-yieldcurve}
-    volumes:
-      - ./services/pipeline/src:/app/src
     depends_on:
       migrations:
         condition: service_completed_successfully
